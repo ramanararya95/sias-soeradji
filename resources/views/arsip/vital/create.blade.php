@@ -1,0 +1,219 @@
+@extends('layouts.app')
+
+@section('title', 'Registrasi Arsip Vital')
+
+@section('content')
+<div class="main-container">
+    <main class="content-area px-6 pt-2 pb-0 space-y-4">
+        <div class="bg-white rounded-xl p-6 shadow-md max-w-5xl mx-auto w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-archive text-red-600"></i>
+                    Registrasi Arsip Vital
+                </h1>
+            </div>
+
+            @if (session('status') == 'sukses')
+            <div class="mb-4 p-4 rounded-md bg-green-100 text-green-800">
+                Data arsip vital berhasil disimpan!
+            </div>
+            @endif
+
+            <!-- Tampilkan data sebelumnya -->
+            @if ($lastEntry)
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 w-full">
+                        <h3 class="text-sm font-medium text-blue-800">Inputan Terakhir</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                    @if (!empty($lastEntry->nomor_arsip))
+                                        <span>{{ $lastEntry->nomor_arsip }}</span>
+                                    @else
+                                        <span style="color: gray; font-style: italic;">Data nomor belum ditemukan</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    <span class="font-medium">Jenis Arsip:</span> 
+                                    <span>{{ $lastEntry->jenis_arsip }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Unit Kerja:</span> 
+                                    <span>{{ $lastEntry->unit_kerja }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Kurun Waktu:</span> 
+                                    <span>{{ $lastEntry->kurun_waktu }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Media:</span> 
+                                    <span>{{ $lastEntry->media }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Jumlah:</span> 
+                                    <span>{{ $lastEntry->jumlah }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Jangka Simpan:</span> 
+                                    <span>{{ $lastEntry->jangka_simpan }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Lokasi Simpan:</span> 
+                                    <span>{{ $lastEntry->lokasi_simpan }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">Metode Perlindungan:</span> 
+                                    <span>{{ $lastEntry->metode_perlindungan }}</span>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <span class="font-medium">Keterangan:</span> 
+                                    <span>{{ $lastEntry->keterangan }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @else
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-yellow-800">Belum Ada Data</h3>
+                        <div class="mt-2 text-sm text-yellow-700">
+                            <p>Belum ada data arsip vital yang terinput sebelumnya.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- Form Registrasi -->
+            <div>
+                <h2 class="text-lg font-medium text-slate-700 mb-4">Tambah Arsip Vital Baru</h2>
+                <form action="{{ route('arsip.vital.store') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @csrf
+                    <!-- FIELD NOMOR ARSIP -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nomor Arsip</label>
+                        <input type="text" name="nomor_arsip" value="{{ $nomorArsip }}" readonly
+                            class="w-full px-4 py-2 border border-slate-300 rounded bg-gray-100 text-slate-700">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="button" onclick="regenerateNomorArsip()" class="text-blue-600 text-sm hover:underline font-medium">
+                            🔄 Generate Ulang Nomor Arsip
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Instansi</label>
+                        <input type="text" name="nama_instansi" value="RSUP dr. Soeradji Tirtonegoro" readonly
+                            class="w-full px-4 py-2 border border-slate-300 rounded bg-gray-100 text-slate-700">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Jenis Arsip</label>
+                        <input type="text" name="jenis_arsip" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Unit Kerja</label>
+                        <input type="text" name="unit_kerja" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Kurun Waktu</label>
+                        <input type="text" name="kurun_waktu" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Media</label>
+                        <input type="text" name="media" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
+                        <input type="text" name="jumlah" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Jangka Simpan</label>
+                        <input type="text" name="jangka_simpan" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi Simpan</label>
+                        <input type="text" name="lokasi_simpan" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Metode Perlindungan</label>
+                        <input type="text" name="metode_perlindungan" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
+                        <textarea name="keterangan" rows="3" required
+                            class="w-full px-4 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded shadow">
+                            <i class="fas fa-save mr-2"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+document.querySelector("form").addEventListener("submit", async function(e) {
+    const nomorInput = document.querySelector('input[name="nomor_arsip"]');
+    const nomor = nomorInput.value;
+
+    try {
+        const res = await fetch("{{ route('api.cek_nomor_arsip_vital') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: "nomor=" + encodeURIComponent(nomor)
+        });
+
+        const data = await res.json();
+
+        if (data.exists) {
+            e.preventDefault();
+            alert("❗ Nomor arsip sudah digunakan. Silakan klik Generate Ulang atau muat ulang halaman.");
+        }
+    } catch (error) {
+        console.error("Gagal cek nomor arsip:", error);
+    }
+});
+
+function regenerateNomorArsip() {
+    location.reload();
+}
+</script>
+@endsection

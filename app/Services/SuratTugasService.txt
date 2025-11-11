@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+class SuratTugasService
+{
+    private $pegawaiData = null;
+    private $excelFilePath;
+
+    public function __construct()
+    {
+        // Pastikan path ini benar. File harus ada di folder public/files/
+        $this->excelFilePath = public_path('files/09. PETA PEGAWAI BULAN SEPTEMBER 2025.xlsx');
+        
+        // Debug: Cek apakah file ada
+        if (!file_exists($this->excelFilePath)) {
+            // Log error atau lempar exception agar mudah diketahui
+            \Log::error("File pegawai tidak ditemukan di: " . $this->excelFilePath);
+        }
+    }
+
+    /**
+     * Mendapatkan data pegawai dari Excel, dengan cache di session
+     */
+    public function getPegawaiData()
+    {
+        if ($this->pegawaiData !== null) {
+            return $this->pegawaiData;
+        }
+
+        // Cek cache di session
+        if (session()->has('pegawai_data')) {
+            $this->pegawaiData = session('pegawai_data');
+            return $this->pegawaiData;
+        }
+
+        // Jika file tidak ada, kembalikan array kosong
+        if (!file_exists($this->excelFilePath)) {
+            return [];
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($this->excelFilePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $data = [];
+
+            // Loop mulai dari baris ke-10
+            foreach ($sheet->getRowIterator(10) as $row) {
+                $rowData = [];
+                foreach ($row->getCellIterator() as $cell) {
+                    $rowData[] = $cell->getValue();
+                }
+
+                // Ambil data jika nama (kolom C, indeks 2) tidak kosong
+                if (isset($rowData[2]) && !empty(trim($rowData[2]))) {
+                    $pegawai = [
+                        'nama' => trim($rowData[2]),
+                        'nip' => trim($rowData[3] ?? ''),
+                        // Gabungkan kolom G (6) dan H (7) untuk pangkat/golongan
+                        'pangkat_golongan' => trim(($rowData[6] ?? '') . ' ' . ($rowData[7] ?? '')),
+                        // Kolom J (9) untuk jabatan
+                        'jabatan' => trim($rowData[9] ?? ''),
+                    ];
+                    $data[] = $pegawai;
+                }
+            }
+
+            // Simpan ke session
+            session(['pegawai_data' => $data]);
+            $this->pegawaiData = $data;
+            return $data;
+
+        } catch (\Exception $e) {
+            \Log::error('Gagal membaca file Excel pegawai: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Mencari pegawai berdasarkan nama
+     */
+    public function searchPegawai($term)
+    {
+        if (empty($term)) {
+            return [];
+        }
+        
+        $pegawaiData = $this->getPegawaiData();
+        $results = [];
+
+        foreach ($pegawaiData as $pegawai) {
+            // Gunakan stripos untuk pencarian case-insensitive
+            if (stripos($pegawai['nama'], $term) !== false) {
+                $results[] = [
+                    'label' => $pegawai['nama'], // Label yang ditampilkan di dropdown
+                    'value' => $pegawai['nama'], // Value yang dimasukkan ke input
+                    'nip' => $pegawai['nip'],
+                    'pangkat_golongan' => $pegawai['pangkat_golongan'],
+                    'jabatan' => $pegawai['jabatan']
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+
+    /**
+     * Generate HTML untuk preview
+     */
+    public function generatePreviewHtml(array $data, int $templateType)
+    {
+        $templateFile = $templateType == 1
+            ? resource_path('views/templates/st/template_st1.html')
+            : resource_path('views/templates/st/template_st2.html');
+
+        if (!file_exists($templateFile)) {
+            // Jika template HTML tidak ada, gunakan string HTML dasar
+            return "<h1>Preview Surat Tugas</h1><pre>" . print_r($data, true) . "</pre>";
+        }
+
+        $templateContent = file_get_contents($templateFile);
+        
+        // Siapkan data untuk 2 orang
+        $placeholders = [
+            'jenis_naskah' => $data['jenis_naskah'] ?? '',
+            'pengirim' => $data['pengirim'] ?? '',
+            'nomor_pengirim' => $data['nomor_pengirim'] ?? '',
+            'tanggal_surat' => $data['tanggal_surat'] ?? '',
+            'hal' => $data['hal'] ?? '',
+            'nama_gelar1' => $data['nama_gelar'][0] ?? '',
+            'nip1' => $data['nip'][0] ?? '',
+            'pangkat_golongan1' => $data['pangkat_golongan'][0] ?? '',
+            'jabatan1' => $data['jabatan'][0] ?? '',
+            'nama_gelar2' => $data['nama_gelar'][1] ?? '',
+            'nip2' => $data['nip'][1] ?? '',
+            'pangkat_golongan2' => $data['pangkat_golongan'][1] ?? '',
+            'jabatan2' => $data['jabatan'][1] ?? '',
+        ];
+
+        // Tambahkan placeholder untuk tugas
+        for ($i = 1; $i <= 6; $i++) {
+            $key = "untuk_$i";
+            $placeholders[$key] = $data[$key] ?? '';
+        }
+
+        // Replace placeholder
+        foreach ($placeholders as $key => $value) {
+            $templateContent = str_replace('{{' . $key . '}}', $value, $templateContent);
+        }
+
+        return $templateContent;
+    }
+
+    /**
+     * Generate file Word dari template
+     */
+    public function generateWord(array $data, int $templateType, string $filename)
+    {
+        $templateFile = $templateType == 1
+            ? resource_path('views/templates/st/template_st1.docx')
+            : resource_path('views/templates/st/template_st2.docx');
+
+        if (!file_exists($templateFile)) {
+            throw new \Exception("Template file not found: " . basename($templateFile));
+        }
+
+        // Persiapkan replacements dari array data
+        $replacements = [
+            'jenis_naskah' => $data['jenis_naskah'] ?? '',
+            'pengirim' => $data['pengirim'] ?? '',
+            'nomor_pengirim' => $data['nomor_pengirim'] ?? '',
+            'tanggal_surat' => $data['tanggal_surat'] ?? '',
+            'hal' => $data['hal'] ?? '',
+        ];
+
+        // Data Pegawai 1
+        $replacements['nama_gelar1'] = $data['nama_gelar'][0] ?? '';
+        $replacements['nip1'] = $data['nip'][0] ?? '';
+        $replacements['pangkat_golongan1'] = $data['pangkat_golongan'][0] ?? '';
+        $replacements['jabatan1'] = $data['jabatan'][0] ?? '';
+
+        // Data Pegawai 2 (hanya jika template untuk 2 orang)
+        if ($templateType == 2) {
+            $replacements['nama_gelar2'] = $data['nama_gelar'][1] ?? '';
+            $replacements['nip2'] = $data['nip'][1] ?? '';
+            $replacements['pangkat_golongan2'] = $data['pangkat_golongan'][1] ?? '';
+            $replacements['jabatan2'] = $data['jabatan'][1] ?? '';
+        }
+
+        // Atur semicolon per baris "untuk_X"
+        for ($i = 1; $i <= 6; $i++) {
+            $key = "untuk_$i";
+            $val = trim($data[$key] ?? '');
+            $replacements[$key] = $val;
+        }
+
+        // Gunakan TemplateProcessor
+        $templateProcessor = new TemplateProcessor($templateFile);
+        foreach ($replacements as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        // Simpan hasil
+        $outputDir = public_path('files/st/hasil/');
+        $templateProcessor->saveAs($outputDir . $filename);
+
+        return $outputDir . $filename;
+    }
+}

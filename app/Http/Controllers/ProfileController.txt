@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class ProfileController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    public function index()
+    {
+        $user = Auth::user();
+        return view('profile.index', compact('user'));
+    }
+
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'foto' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('foto')) {
+            $file = $request->file('foto');
+            $ext = $file->getClientOriginalExtension();
+            $filename = 'user_' . $user->id . '.' . $ext;
+            
+            // Hapus foto lama jika ada
+            if ($user->foto) {
+                Storage::disk('public')->delete('profiles/' . $user->foto);
+            }
+            
+            // Simpan foto baru
+            $file->storeAs('profiles', $filename, 'public');
+            $user->foto = $filename;
+            $user->save();
+        }
+
+        return redirect()->route('profile.index')
+            ->with('success', 'Foto profil berhasil diperbarui!');
+    }
+}

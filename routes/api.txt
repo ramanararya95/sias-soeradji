@@ -1,0 +1,14 @@
+<?php
+
+use App\Http\Controllers\WatermarkController;
+use Illuminate\Support\Facades\Route;
+
+// API Watermark Routes
+Route::prefix('watermark')->name('api.watermark.')->middleware('auth:api')->group(function () {
+    // Image Watermark
+    Route::post('/image/process', [WatermarkController::class, 'processImage'])->name('image.process');
+    Route::post('/image/save-preview', [WatermarkController::class, 'saveImagePreview'])->name('image.save-preview');
+    
+    // Text Watermark
+    Route::post('/text/process', [WatermarkController::class, 'processText'])->name('text.process');
+});

@@ -1,0 +1,303 @@
+<!-- resources/views/watermark/text.blade.php -->
+@extends('layouts.watermark')
+
+@section('title', 'Watermark Document - SIAS 2025')
+@section('header-title', 'Watermark Document')
+@section('header-subtitle', 'Tambahkan watermark pada dokumen PDF atau DOCX')
+
+@section('content')
+<div class="watermark-main-container">
+    <div class="watermark-page-header">
+        <h1><i class="fas fa-file-alt"></i> Watermark Document</h1>
+        <p>Tambahkan watermark "KEMENTERIAN KESEHATAN" pada dokumen PDF atau DOCX Anda</p>
+        <div style="margin-top: 15px;">
+            <a href="{{ route('watermark.logs.index') }}" class="watermark-back-btn">
+                <i class="fas fa-list"></i> Log Watermark
+            </a>
+        </div>
+    </div>
+    
+    <div class="watermark-card">
+        <div class="watermark-card-header">
+            <h5><i class="fas fa-cloud-upload"></i> Upload File untuk Watermark</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="uploadForm" action="{{ route('watermark.text.process') }}">
+                @csrf
+                <!-- Area Upload -->
+                <div class="watermark-upload-area mb-3" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Klik atau tarik file ke sini</p>
+                    <small>Format yang didukung: PDF, DOCX (Maks. 10MB)</small>
+                    <input type="file" name="file" id="file" accept=".pdf,.docx" required hidden>
+                </div>
+                
+                <!-- File Info -->
+                <div class="watermark-file-info" id="fileInfo">
+                    <div class="watermark-file-details">
+                        <span class="watermark-file-name" id="fileName"></span>
+                        <span class="watermark-file-size" id="fileSize"></span>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="watermark-progress-container" id="progressContainer">
+                    <div class="watermark-progress">
+                        <div class="watermark-progress-bar" id="progressBar"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">Memproses file...</small>
+                </div>
+                
+                <!-- Tombol Proses -->
+                <button type="submit" class="watermark-btn" id="processBtn">
+                    <i class="fas fa-cog"></i> Proses Watermark
+                </button>
+            </form>
+            
+            <!-- Peringatan -->
+            <div class="watermark-warning-box">
+                <h6><i class="fas fa-exclamation-triangle"></i> Catatan Penting:</h6>
+                <p class="mb-0">Beberapa file PDF dengan kompresi tertentu mungkin tidak dapat diproses sempurna. Jika mengalami kesalahan, coba gunakan PDF lain atau konversi terlebih dahulu ke format yang lebih kompatibel.</p>
+            </div>
+            
+            <!-- Info Box -->
+            <div class="watermark-info-box">
+                <h6><i class="fas fa-info-circle"></i> Informasi:</h6>
+                <p class="mb-0">Sistem ini menggunakan beberapa metode untuk memproses PDF. Jika metode utama gagal, sistem akan mencoba metode alternatif untuk memastikan watermark dapat ditambahkan.</p>
+            </div>
+            
+            <!-- Format Options -->
+            <div class="watermark-format-options">
+                <div class="watermark-format-option active">
+                    <i class="fas fa-file-pdf"></i>
+                    <div>PDF</div>
+                    <small>Dokumen PDF</small>
+                </div>
+                <div class="watermark-format-option">
+                    <i class="fas fa-file-word"></i>
+                    <div>DOCX</div>
+                    <small>Dokumen Word</small>
+                </div>
+            </div>
+            
+            <!-- Panduan Penggunaan -->
+            <div class="watermark-step-container">
+                <h6><i class="fas fa-info-circle"></i> Cara Penggunaan:</h6>
+                <ol>
+                    <li>Pilih file PDF atau DOCX yang akan ditambahkan watermark</li>
+                    <li>Klik tombol "Proses Watermark"</li>
+                    <li>Tunggu proses selesai</li>
+                    <li>Download hasil atau preview dokumen</li>
+                </ol>
+            </div>
+            
+            <!-- Pesan status -->
+            @if(session('success'))
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle"></i>
+                    {{ session('success') }}
+                    @if(session('downloadLink'))
+                        <div class="watermark-button-group mt-3">
+                            <a href="{{ session('downloadLink') }}" download="{{ session('fileName') }}" class="watermark-btn watermark-btn-success" id="downloadBtn">
+                                <i class="fas fa-download"></i> Download Hasil Watermark
+                            </a>
+                            <a href="{{ route('watermark.logs.index') }}" class="watermark-btn" id="viewLogBtn">
+                                <i class="fas fa-list"></i> Lihat Log Watermark
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @endif
+            
+            @if(session('error'))
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ session('error') }}
+                </div>
+            @endif
+            
+            <!-- Preview -->
+            @if(session('downloadLink'))
+                <div class="watermark-preview-area mt-4">
+                    <h6><i class="fas fa-eye"></i> Preview Hasil Watermark:</h6>
+                    <div class="text-center mb-2">
+                        <span class="badge bg-primary">{{ session('fileName') }}</span>
+                    </div>
+                    <iframe src="{{ session('downloadLink') }}"></iframe>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Notification Container -->
+<div class="watermark-notification" id="notification">
+    <i class="fas fa-check-circle"></i>
+    <span id="notificationText"></span>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const uploadForm = document.getElementById('uploadForm');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const processBtn = document.getElementById('processBtn');
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    const formatOptions = document.querySelectorAll('.watermark-format-option');
+    const viewLogBtn = document.getElementById('viewLogBtn');
+    
+    // File upload via click
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Format option selection
+    formatOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            formatOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update file input accept attribute based on selected format
+            const format = this.querySelector('div').textContent.toLowerCase();
+            if (format === 'pdf') {
+                fileInput.setAttribute('accept', '.pdf');
+            } else if (format === 'docx') {
+                fileInput.setAttribute('accept', '.docx');
+            }
+        });
+    });
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function() {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length) {
+            handleFileSelect(fileInput.files[0]);
+        }
+    });
+    
+    // Handle file selection
+    function handleFileSelect(file) {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            showNotification('Ukuran file terlalu besar. Maksimal 10MB.', 'error');
+            return;
+        }
+        
+        // Check file type
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!validTypes.includes(file.type)) {
+            showNotification('Format file tidak didukung. Hanya PDF dan DOCX.', 'error');
+            return;
+        }
+        
+        // Update format option based on file type
+        formatOptions.forEach(opt => {
+            opt.classList.remove('active');
+            if (file.type === 'application/pdf' && opt.querySelector('div').textContent.toLowerCase() === 'pdf') {
+                opt.classList.add('active');
+            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && opt.querySelector('div').textContent.toLowerCase() === 'docx') {
+                opt.classList.add('active');
+            }
+        });
+        
+        // Display file info
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileInfo.classList.add('show');
+        
+        showNotification('File siap diproses', 'success');
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Show notification
+    function showNotification(message, type) {
+        notificationText.textContent = message;
+        notification.className = 'watermark-notification ' + type;
+        notification.classList.add('show');
+        
+        setTimeout(function() {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+    
+    // Form submission
+    uploadForm.addEventListener('submit', function(e) {
+        if (!fileInput.files.length) {
+            e.preventDefault();
+            showNotification('Silakan pilih file terlebih dahulu', 'error');
+            return;
+        }
+        
+        // Show progress bar
+        progressContainer.classList.add('show');
+        processBtn.disabled = true;
+        processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        
+        // Simulate progress
+        let progress = 0;
+        const interval = setInterval(function() {
+            progress += 5;
+            progressBar.style.width = progress + '%';
+            
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
+        }, 200);
+    });
+    
+    // Download button click
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            showNotification('Mengunduh file...', 'success');
+        });
+    }
+    
+    // View log button click
+    if (viewLogBtn) {
+        viewLogBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showNotification('Membuka halaman log watermark...', 'info');
+            setTimeout(function() {
+                window.location.href = '{{ route("watermark.logs.index") }}';
+            }, 1000);
+        });
+    }
+});
+</script>
+@endpush

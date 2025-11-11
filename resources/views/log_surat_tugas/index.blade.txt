@@ -1,0 +1,68 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Log Surat Tugas</h1>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Daftar Surat Tugas</h6>
+            <a href="{{ route('surat_tugas.form') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Buat Surat Tugas Baru
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nama File</th>
+                            <th>Nama Pegawai</th>
+                            <th>Hal</th>
+                            <th>Tanggal Dibuat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($suratTugasList as $index => $surat)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $surat->filename_word ?? 'Tidak ada file' }}</td>
+                            <td>{{ $surat->nama_gelar1 . ($surat->nama_gelar2 ? ', ' . $surat->nama_gelar2 : '') }}</td>
+                            <td>{{ $surat->hal }}</td>
+                            <td>{{ \Carbon\Carbon::parse($surat->created_at)->format('d M Y, H:i') }}</td>
+                            <td>
+                                @if($surat->filename_word)
+                                    <a href="{{ route('log_surat_tugas.download', $surat->id) }}" class="btn btn-sm btn-success" target="_blank">
+                                        <i class="fas fa-download"></i> Download
+                                    </a>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center">Tidak ada data surat tugas</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-center">
+                    {{ $suratTugasList->links() }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

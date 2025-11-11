@@ -1,0 +1,115 @@
+<!-- resources/views/auth/login.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Login - SIAS Soeradji')
+
+@section('content')
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="flex justify-center">
+            <img src="{{ asset('img/logo-soeradji.png') }}" class="h-20 w-auto" alt="SIAS Soeradji">
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Login</h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Masuk ke akun Anda untuk melanjutkan</p>
+            </div>
+            
+            @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <div>
+                        <p class="font-medium">Terjadi kesalahan:</p>
+                        <ul class="mt-1 text-sm list-disc list-inside">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <form action="{{ route('login') }}" method="POST" class="space-y-6">
+                @csrf
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username atau Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input id="username" name="username" type="text" required
+                            class="pl-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            placeholder="Masukkan username atau email"
+                            value="{{ old('username') }}">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input id="password" name="password" type="password" required
+                            class="pl-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            placeholder="Masukkan password">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="captcha" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kode Verifikasi</label>
+                    <div class="flex items-center space-x-2">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-shield-alt text-gray-400"></i>
+                            </div>
+                            <input id="captcha" name="captcha" type="text" required
+                                class="pl-10 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                placeholder="Masukkan kode verifikasi">
+                        </div>
+                        <div class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">
+                            <span class="text-gray-600 dark:text-gray-300 font-mono text-lg" id="captcha-display">{{ Session::get('captcha') }}</span>
+                        </div>
+                        <button type="button" onclick="refreshCaptcha()" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="remember" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Ingat saya</label>
+                    </div>
+                </div>
+                    
+                    <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                        Login
+                    </button>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                        Lupa password?
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshCaptcha() {
+    fetch('{{ route('captcha.refresh') }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('captcha-display').textContent = data.captcha;
+        })
+        .catch(error => {
+            console.error('Error refreshing captcha:', error);
+        });
+}
+</script>
+@endsection

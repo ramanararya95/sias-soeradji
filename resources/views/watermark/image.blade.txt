@@ -1,0 +1,383 @@
+<!-- resources/views/watermark/image.blade.php -->
+@extends('layouts.watermark')
+
+@section('title', 'Watermark Gambar - SIAS 2025')
+
+@section('content')
+<div class="watermark-container">
+    <header class="watermark-header">
+        <h1><i class="fas fa-image"></i> Watermark Gambar</h1>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="javascript:location.reload()" class="watermark-back-btn">
+                <i class="fas fa-sync-alt"></i> Reload
+            </a>
+            <a href="{{ route('watermark.logs.index') }}" class="watermark-back-btn">
+                <i class="fas fa-list"></i> Log Watermark
+            </a>
+        </div>
+    </header>
+    
+    <div class="watermark-body">
+        @if(session('success'))
+            <div class="watermark-message watermark-success">
+                <i class="fas fa-check-circle"></i>
+                <div>{!! session('success') !!}</div>
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="watermark-message watermark-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>{{ session('error') }}</div>
+            </div>
+        @endif
+        
+        <div class="watermark-info-box">
+            <h3><i class="fas fa-info-circle"></i> Informasi Watermark</h3>
+            <ul>
+                <li>Watermark akan ditambahkan secara otomatis menggunakan gambar</li>
+                <li>Ukuran watermark adalah 1:2 dari lebar gambar asli</li>
+                <li>Watermark ditempatkan di tengah gambar</li>
+                <li>Format yang didukung: JPG, JPEG, PNG</li>
+                <li>Setelah preview, Anda bisa langsung download hasilnya</li>
+                <li>Setelah melihat preview, download preview, jangan lupa untuk disimpan ya agar pekerjaan tidak hilang</li>
+            </ul>
+        </div>
+        
+        <div class="watermark-form-container">
+            <h2 class="watermark-form-title"><i class="fas fa-upload"></i> Upload Gambar</h2>
+            <form method="post" enctype="multipart/form-data" id="watermarkForm">
+                @csrf
+                <div class="watermark-form-group">
+                    <label for="file">Pilih Gambar (JPG/JPEG/PNG):</label>
+                    <div class="watermark-file-input-wrapper">
+                        <input type="file" id="file" name="file" accept=".jpg,.jpeg,.png" required>
+                        <label for="file" class="watermark-file-input-label" id="fileLabel">
+                            <div>
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div>Klik untuk memilih gambar atau seret ke sini</div>
+                                <small>Format: JPG, JPEG, PNG</small>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="watermark-progress-container" id="progressContainer">
+                        <div class="watermark-progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="watermark-progress-text" id="progressText">0%</div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="watermark-preview-container">
+            <div class="watermark-preview-box">
+                <h3 class="watermark-preview-title">Gambar Asli</h3>
+                <div class="watermark-preview-image" id="originalPreview">
+                    <i class="fas fa-image fa-3x"></i>
+                    <span>Preview gambar asli</span>
+                </div>
+            </div>
+            
+            <div class="watermark-preview-box">
+                <h3 class="watermark-preview-title">Hasil Watermark</h3>
+                <div class="watermark-preview-image" id="watermarkedPreview">
+                    <i class="fas fa-image fa-3x"></i>
+                    <span>Preview hasil watermark</span>
+                </div>
+                <div class="watermark-preview-controls">
+                    <button type="button" class="watermark-btn" id="previewBtn" disabled>
+                        <i class="fas fa-eye"></i> Preview Watermark
+                    </button>
+                    <button class="watermark-btn-reset" id="resetBtn" disabled>
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                    <button class="watermark-btn-success" id="saveBtn" disabled style="display: none;">
+                        <i class="fas fa-save"></i> Simpan ke Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Konfirmasi -->
+<div id="confirmModal" class="watermark-modal">
+    <div class="watermark-modal-content">
+        <div class="watermark-modal-header">
+            <h3 class="watermark-modal-title">Simpan ke Log</h3>
+            <span class="watermark-close">&times;</span>
+        </div>
+        <div class="watermark-modal-body">
+            <p>Anda dapat mengganti nama file sebelum menyimpan ke log:</p>
+            <div class="watermark-form-group">
+                <label for="filenameInput">Contoh: SK Pendirian Rumah Sakit Umum Pusat Soeradji Tirtonegoro_1992_Watermark</label>
+                <input type="text" id="filenameInput" class="watermark-filename-input" placeholder="Masukkan nama file">
+            </div>
+            <p class="note">File akan disimpan dengan ekstensi .png</p>
+        </div>
+        <div class="watermark-modal-footer">
+            <button type="button" class="watermark-btn-reset" id="cancelBtn">Batal</button>
+            <button type="button" class="watermark-btn-success" id="confirmBtn">Simpan</button>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let originalImageData = null;
+    let watermarkedImageData = null;
+    
+    const fileInput = document.getElementById('file');
+    const previewBtn = document.getElementById('previewBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const originalPreview = document.getElementById('originalPreview');
+    const watermarkedPreview = document.getElementById('watermarkedPreview');
+    const watermarkForm = document.getElementById('watermarkForm');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const fileLabel = document.getElementById('fileLabel');
+    
+    // Event listener untuk file input
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validasi tipe file
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('Hanya file JPG, JPEG, dan PNG yang diperbolehkan');
+                this.value = ''; // Reset input
+                return;
+            }
+            
+            // Update label dengan nama file
+            fileLabel.innerHTML = `
+                <div>
+                    <i class="fas fa-file-image"></i>
+                    <div>${file.name}</div>
+                    <small>Format: ${file.type}, Ukuran: ${formatFileSize(file.size)}</small>
+                </div>
+            `;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Tampilkan loading
+                originalPreview.innerHTML = `
+                    <div class="watermark-loading-overlay">
+                        <div class="watermark-spinner"></div>
+                        <span>Memuat gambar...</span>
+                    </div>
+                `;
+                
+                // Simulasi loading
+                setTimeout(() => {
+                    originalPreview.innerHTML = 
+                        `<img src="${event.target.result}" alt="Original">`;
+                    
+                    // Simpan data gambar asli
+                    originalImageData = event.target.result;
+                    
+                    // Aktifkan tombol preview
+                    previewBtn.disabled = false;
+                    resetBtn.disabled = false;
+                }, 1000);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Format ukuran file
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Event listener untuk tombol preview
+    previewBtn.addEventListener('click', function() {
+        if (!originalImageData) return;
+        
+        // Tampilkan loading
+        watermarkedPreview.innerHTML = `
+            <div class="watermark-loading-overlay">
+                <div class="watermark-spinner"></div>
+                <span>Menerapkan watermark...</span>
+            </div>
+        `;
+        
+        // Buat canvas untuk proses watermark
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Set ukuran canvas sesuai gambar
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Gambar gambar asli ke canvas
+            ctx.drawImage(img, 0, 0);
+            
+            // Muat watermark
+            const watermark = new Image();
+            watermark.onload = function() {
+                // Hitung ukuran watermark (setengah dari lebar gambar)
+                const watermarkWidth = img.width / 2;
+                const watermarkHeight = (watermark.height * watermarkWidth) / watermark.width;
+                
+                // Hitung posisi watermark (tengah)
+                const x = (img.width - watermarkWidth) / 2;
+                const y = (img.height - watermarkHeight) / 2;
+                
+                // Terapkan opacity
+                ctx.globalAlpha = 0.25;
+                
+                // Gambar watermark
+                ctx.drawImage(watermark, x, y, watermarkWidth, watermarkHeight);
+                
+                // Tampilkan hasil
+                watermarkedPreview.innerHTML = '';
+                watermarkedPreview.appendChild(canvas);
+                
+                // Simpan data hasil
+                watermarkedImageData = canvas.toDataURL('image/png');
+                
+                // Aktifkan tombol save
+                saveBtn.disabled = false;
+                saveBtn.style.display = 'block';
+            };
+            
+            watermark.src = '{{ asset("img/watermark_foto/watermark_foto.png") }}';
+        };
+        
+        img.src = originalImageData;
+    });
+    
+    // Event listener untuk tombol reset
+    resetBtn.addEventListener('click', function() {
+        // Reset preview
+        originalPreview.innerHTML = `
+            <i class="fas fa-image fa-3x"></i>
+            <span>Preview gambar asli</span>
+        `;
+        
+        watermarkedPreview.innerHTML = `
+            <i class="fas fa-image fa-3x"></i>
+            <span>Preview hasil watermark</span>
+        `;
+        
+        // Reset data
+        originalImageData = null;
+        watermarkedImageData = null;
+        
+        // Reset form
+        watermarkForm.reset();
+        fileLabel.innerHTML = `
+            <div>
+                <i class="fas fa-cloud-upload-alt"></i>
+                <div>Klik untuk memilih gambar atau seret ke sini</div>
+                <small>Format: JPG, JPEG, PNG</small>
+            </div>
+        `;
+        
+        // Disable tombol
+        previewBtn.disabled = true;
+        resetBtn.disabled = true;
+        saveBtn.disabled = true;
+        saveBtn.style.display = 'none';
+    });
+    
+    // Event listener untuk modal
+    const modal = document.getElementById('confirmModal');
+    const modalClose = document.querySelector('.watermark-close');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const filenameInput = document.getElementById('filenameInput');
+    
+    // Buka modal saat tombol save diklik
+    saveBtn.addEventListener('click', function() {
+        modal.style.display = 'flex';
+    });
+    
+    // Tutup modal
+    modalClose.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    cancelBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Simpan preview
+    confirmBtn.addEventListener('click', function() {
+        if (!watermarkedImageData) return;
+        
+        const filename = filenameInput.value || 'watermarked_' + Date.now() + '.png';
+        
+        // Tampilkan loading
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        
+        // Kirim data ke server
+        fetch('{{ route("watermark.image.save-preview") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                image_data: watermarkedImageData,
+                filename: filename
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Tampilkan pesan sukses
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'watermark-message watermark-success';
+                messageDiv.innerHTML = data.message;
+                
+                // Hapus pesan lama jika ada
+                const oldMessage = document.querySelector('.watermark-message');
+                if (oldMessage) {
+                    oldMessage.remove();
+                }
+                
+                // Tambahkan pesan baru
+                const content = document.querySelector('.watermark-body');
+                content.insertBefore(messageDiv, content.firstChild);
+                
+                // Reset form
+                resetBtn.click();
+                
+                // Tutup modal
+                modal.style.display = 'none';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menyimpan file');
+        })
+        .finally(() => {
+            // Reset tombol
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Log';
+        });
+    });
+    
+    // Tutup modal jika klik di luar modal
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+@endpush

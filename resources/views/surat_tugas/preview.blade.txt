@@ -1,0 +1,23 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <h1>Preview Surat Tugas</h1>
+
+    <div class="preview-wrapper">
+        {!! $previewHtml !!}
+    </div>
+
+    <div class="mt-4">
+        <form action="{{ route('surat_tugas.save') }}" method="POST">
+            @csrf
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Simpan ke Log
+            </button>
+            <a href="{{ route('surat_tugas.form') }}" class="btn btn-secondary">
+                <i class="fas fa-edit"></i> Edit Kembali
+            </a>
+        </form>
+    </div>
+</div>
+@endsection

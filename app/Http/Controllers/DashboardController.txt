@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\UserProfile;
+use Carbon\Carbon;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        // Mendapatkan data statistik untuk dashboard
+        $stats = [
+            'total_arsip_aktif' => \DB::table('arsip_aktif')->count(),
+            'total_arsip_inaktif' => \DB::table('arsip_inaktif')->count(),
+            'total_surat_tugas' => \DB::table('log_surat_tugas')->count(),
+        //    'total_berita_pemindahan' => \DB::table('log_berita_pemindahan')->count(),
+        //    'total_berita_pemusnahan' => \DB::table('log_berita_pemusnahan')->count(),
+        //    'total_berita_alihmedia' => \DB::table('log_berita_alihmedia')->count(),
+        ];
+        
+        // Mendapatkan notifikasi yang belum dibaca
+        $unreadNotifications = auth()->user()->notifications()->where('is_read', 0)->get();
+        
+        return view('dashboard.index', compact('stats', 'unreadNotifications'));
+
+    }
+    
+    public function getOnlineUsers()
+    {
+        // Mendapatkan user yang online (aktif dalam 5 menit terakhir)
+        $fiveMinutesAgo = Carbon::now()->subMinutes(5);
+        
+        $onlineUsers = User::where('last_activity', '>=', $fiveMinutesAgo)
+            ->where('id', '!=', auth()->id())
+            ->with('profile')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'nama_lengkap' => $user->nama_lengkap,
+                    'jabatan' => $user->jabatan,
+                    'role' => $user->role,
+                    'initials' => $this->getInitials($user->nama_lengkap),
+                    'avatar_url' => $user->profile && $user->profile->foto ? 
+                        asset('storage/profiles/' . $user->profile->foto) : null,
+                    'last_activity_formatted' => $this->formatLastActivity($user->last_activity)
+                ];
+            });
+            
+        return response()->json($onlineUsers);
+    }
+    
+    public function getTodayActivities()
+    {
+        // Mendapatkan aktivitas hari ini
+        $todayActivities = \DB::table('user_activities')
+            ->whereDate('created_at', Carbon::today())
+            ->join('users', 'user_activities.user_id', '=', 'users.id')
+            ->select('user_activities.*', 'users.nama_lengkap', 'users.initials')
+            ->orderBy('user_activities.created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($activity) {
+                return [
+                    'id' => $activity->id,
+                    'user' => [
+                        'nama_lengkap' => $activity->nama_lengkap,
+                        'initials' => $activity->initials,
+                        'avatar_url' => null // Bisa ditambahkan jika ada profil foto
+                    ],
+                    'description' => $activity->description,
+                    'time' => Carbon::parse($activity->created_at)->format('H:i')
+                ];
+            });
+            
+        return response()->json($todayActivities);
+    }
+    
+    private function getInitials($name)
+    {
+        $words = explode(' ', $name);
+        $initials = '';
+        
+        foreach ($words as $word) {
+            $initials .= strtoupper(substr($word, 0, 1));
+        }
+        
+        return substr($initials, 0, 2);
+    }
+    
+    private function formatLastActivity($lastActivity)
+    {
+        if (!$lastActivity) return 'Tidak diketahui';
+        
+        $now = Carbon::now();
+        $activity = Carbon::parse($lastActivity);
+        $diffInMinutes = $now->diffInMinutes($activity);
+        
+        if ($diffInMinutes < 1) {
+            return 'Baru saja';
+        } elseif ($diffInMinutes < 60) {
+            return $diffInMinutes . ' menit yang lalu';
+        } elseif ($diffInMinutes < 1440) {
+            return floor($diffInMinutes / 60) . ' jam yang lalu';
+        } else {
+            return $activity->format('d M Y, H:i');
+        }
+    }
+}

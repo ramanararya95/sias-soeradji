@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class LogSuratTugas extends Model
+{
+    use HasFactory;
+
+    protected $table = 'log_surat_tugas';
+
+    // Nonaktifkan timestamps
+    public $timestamps = false;
+
+    protected $fillable = [
+        'nomor_naskah', 'jenis_naskah', 'pengirim', 'nomor_pengirim', 'tanggal_surat', 'hal',
+        'nama_gelar1', 'nip1', 'pangkat_golongan1', 'jabatan1',
+        'nama_gelar2', 'nip2', 'pangkat_golongan2', 'jabatan2',
+        'untuk_1', 'untuk_2', 'untuk_3', 'untuk_4', 'untuk_5', 'untuk_6',
+        'filename', 'filename_word', 'template_type', 'html'
+    ];
+}

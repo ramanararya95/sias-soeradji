@@ -1,0 +1,174 @@
+@extends('layouts.app')
+
+@section('title', 'Log Watermark - SIAS 2025')
+
+@section('content')
+<div class="container">
+    <header>
+        <h1><i class="fas fa-history"></i> Log Watermark</h1>
+        <a href="{{ route('dashboard') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali</a>
+    </header>
+    
+    <div class="content">
+        <div class="filter-container">
+            <div class="filter-group">
+                <label for="filter">Filter Jenis:</label>
+                <select id="filter" class="filter-select" onchange="window.location.href='{{ route("watermark.logs.index") }}?filter='+this.value+'&page=1'">
+                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>Semua</option>
+                    <option value="text" {{ $filter === 'text' ? 'selected' : '' }}>Teks (PDF/DOCX)</option>
+                    <option value="image" {{ $filter === 'image' ? 'selected' : '' }}>Gambar</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="pagination-info">Menampilkan {{ count($logs) }} dari {{ $totalItems }} entri</span>
+            </div>
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-card text">
+                <h3>{{ $stats['text'] }}</h3>
+                <p>Watermark Teks</p>
+            </div>
+            
+            <div class="stat-card image">
+                <h3>{{ $stats['image'] }}</h3>
+                <p>Watermark Gambar</p>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            @if(count($logs) > 0)
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nama File</th>
+                            <th>Tanggal</th>
+                            <th>Jenis</th>
+                            <th>Ukuran</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($logs as $log)
+                            <tr>
+                                <td>{{ $log->watermarked_filename }}</td>
+                                <td>{{ \Carbon\Carbon::parse($log->created_at)->format('d/m/Y H:i:s') }}</td>
+                                <td>
+                                    @php
+                                        $category = ($log->file_type === 'pdf' || $log->file_type === 'docx') ? 'text' : 'image';
+                                        $label = ($log->file_type === 'pdf' || $log->file_type === 'docx') ? 'TXT' : 'IMAGE';
+                                    @endphp
+                                    <span class="type-badge {{ $category }}">
+                                        {{ $label }}
+                                    </span>
+                                </td>
+                                <td>{{ formatFileSize($log->file_size) }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ asset('storage/' . $log->file_path) }}" download class="action-btn download">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        @if(in_array(Auth::user()->role, ['admin']))
+                                            <button class="action-btn delete" onclick="confirmDelete({{ $log->id }}, '{{ $log->source_table }}')">
+                                                <i class="fas fa-trash"></i> Hapus
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Tidak Ada Data</h3>
+                    <p>Belum ada log watermark yang tersedia untuk filter yang dipilih.</p>
+                </div>
+            @endif
+        </div>
+        
+        @if($totalItems > $perPage)
+            <div class="pagination">
+                <button onclick="window.location.href='{{ route("watermark.logs.index") }}?filter={{ $filter }}&page={{ max(1, $page - 1) }}'" {{ $page <= 1 ? 'disabled' : '' }}>
+                    <i class="fas fa-chevron-left"></i> Sebelumnya
+                </button>
+                
+                @for($i = 1; $i <= ceil($totalItems / $perPage); $i++)
+                    @if($i == 1 || $i == ceil($totalItems / $perPage) || ($i >= $page - 2 && $i <= $page + 2))
+                        <button onclick="window.location.href='{{ route("watermark.logs.index") }}?filter={{ $filter }}&page={{ $i }}'" class="{{ $i == $page ? 'active' : '' }}">
+                            {{ $i }}
+                        </button>
+                    @elseif($i == $page - 3 || $i == $page + 3)
+                        <span>...</span>
+                    @endif
+                @endfor
+                
+                <button onclick="window.location.href='{{ route("watermark.logs.index") }}?filter={{ $filter }}&page={{ min(ceil($totalItems / $perPage), $page + 1) }}'" {{ $page >= ceil($totalItems / $perPage) ? 'disabled' : '' }}>
+                    Selanjutnya <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        @endif
+    </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div id="confirmModal" class="confirm-modal">
+    <div class="confirm-modal-content">
+        <div class="confirm-modal-header">
+            <h3 class="confirm-modal-title">Konfirmasi Hapus</h3>
+            <span class="confirm-modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="confirm-modal-body">
+            <p>Apakah Anda yakin ingin menghapus log watermark ini? File watermark juga akan dihapus.</p>
+        </div>
+        <div class="confirm-modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Batal</button>
+            <button class="btn-confirm" id="confirmDeleteBtn">Ya, Hapus</button>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+let deleteId = null;
+let deleteSource = null;
+
+function confirmDelete(id, source) {
+    deleteId = id;
+    deleteSource = source;
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+    deleteId = null;
+    deleteSource = null;
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (deleteId !== null) {
+        window.location.href = '{{ route("watermark.logs.destroy", ":id") }}'.replace(':id', deleteId) + '?source=' + deleteSource + '&filter={{ $filter }}&page={{ $page }}';
+    }
+});
+
+// Tutup modal jika klik di luar modal
+window.onclick = function(event) {
+    const modal = document.getElementById('confirmModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Format ukuran file
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+</script>
+@endpush

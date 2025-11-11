@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Template Surat Tugas</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
+        .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 2cm; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .content { margin-bottom: 30px; }
+        .tugas-list { margin: 15px 0; }
+        .tugas-list tr td:first-child { width: 30px; vertical-align: top; }
+        .tanda-tangan { margin-top: 50px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .footer { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 9pt; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Header -->
+        <div class="header">
+            <img src="../assets/img/logo_kemkes.png" width="80" height="80" alt="Logo Kemenkes">
+            <h2>SURAT TUGAS</h2>
+            <p><strong>NOMOR: ${nomor_naskah}</strong></p>
+        </div>
+
+        <!-- Isi Surat -->
+        <div class="content">
+            <p>Sehubungan dengan ${jenis_naskah} dari ${pengirim}, Nomor: ${nomor_pengirim}, tanggal ${tanggal_surat}, hal: ${hal}, dengan ini kami menugaskan kepada:</p>
+            <p style="margin-left: 30px;">(Nama, NIP, Pangkat/Gol dan Jabatan terlampir)</p>
+            
+            <p><strong>Untuk:</strong></p>
+            <table class="tugas-list">
+                ${daftar_tugas}
+            </table>
+            
+            <p>Agar yang bersangkutan melaksanakan tugas dengan baik dan penuh tanggung jawab.</p>
+            
+            <div class="tanda-tangan">
+                <p>${tanggal_naskah}</p>
+                <p>${jabatan_pengirim}</p>
+                <p style="height: 50px;">${ttd_pengirim}</p>
+                <p><strong>${nama_pengirim}</strong></p>
+            </div>
+        </div>
+
+        <!-- Lampiran -->
+        <div style="page-break-before: always;">
+            <h3>Lampiran Surat Tugas</h3>
+            <p><strong>Nomor:</strong> ${nomor_naskah}</p>
+            <p><strong>Tanggal:</strong> ${tanggal_naskah}</p>
+            <h3 style="text-align: center;">DAFTAR PEGAWAI YANG DITUGASKAN</h3>
+            
+            <table>
+                <tr>
+                    <th width="5%">No</th>
+                    <th width="35%">Nama, NIP</th>
+                    <th width="20%">Pangkat/Gol</th>
+                    <th width="40%">Jabatan/Tempat Tugas</th>
+                </tr>
+                ${table_pegawai}
+            </table>
+            
+            <div class="tanda-tangan">
+                <p>${tanggal_naskah}</p>
+                <p>${jabatan_pengirim}</p>
+                <p style="height: 50px;">${ttd_pengirim}</p>
+                <p><strong>${nama_pengirim}</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Kementerian Kesehatan tidak menerima suap dan/atau gratifikasi dalam bentuk apapun. 
+        Jika terdapat potensi suap atau gratifikasi silakan laporkan melalui HALO KEMENKES 1500567 dan https://wbs.kemkes.go.id. 
+        Untuk verifikasi keaslian tanda tangan elektronik, silakan unggah dokumen pada laman https://tte.komdigi.go.id/verifyPDF.
+    </div>
+</body>
+</html>

@@ -1,0 +1,271 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Surat Tugas (2 Orang)</title>
+  <style>
+     /* --- Print layout settings (A4) --- */
+    @page { size: A4; margin: 2.5cm 2.5cm 2.5cm 2.5cm; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { box-shadow: none; margin: 0; }
+    }
+
+    body {
+      margin: 0;
+      background: #f7f7f7;
+      font-family: Arial, sans-serif; /* Ganti ke Arial */
+      color: #000;
+      font-size: 11pt;
+    }
+
+    .page {
+      width: 210mm; /* A4 width */
+      min-height: 297mm; /* A4 height */
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 0.6rem rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .content {
+      padding: 2.5cm; /* match @page margins for on-screen preview */
+      font-size: 11pt;
+      line-height: 1.5;
+      font-family: Arial, sans-serif; /* Tambahkan untuk konten */
+    }
+
+    /* Kop surat */
+    .kop {
+      text-align: center;
+      margin-bottom: 12pt;
+      font-family: Arial, sans-serif; /* Tambahkan untuk kop */
+    }
+    .kop img { 
+      max-width: 100%; 
+      height: auto;
+      margin-bottom: 10px;
+    }
+
+    /* Judul surat */
+    .header-container {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .judul-surat {
+      text-decoration: underline;
+      font-weight: bold;
+      font-size: 11pt;
+      margin: 0 auto; /* Pusatkan judul */
+      display: inline-block; /* Biarkan underline sepanjang teks */
+    }
+    
+    /* Nomor surat */
+    .nomor-surat {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 11pt;
+      font-family: Arial, sans-serif; /* Tambahkan untuk nomor */
+    }
+
+    /* Paragraf */
+    p { 
+      margin: 0 0 10pt 0; 
+      margin-top: 0;
+      margin-bottom: 0;
+      text-align: justify;
+      text-indent: 0;
+      font-family: Arial, sans-serif; /* Tambahkan untuk paragraf */
+    }
+
+    /* Tabel identitas */
+    .identitas {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10pt 0 15pt;
+      font-family: Arial, sans-serif; /* Tambahkan untuk tabel */
+    }
+    .identitas td {
+      vertical-align: top;
+      padding: 3pt 0;
+      font-size: 11pt;
+    }
+    .identitas .lbl { 
+      width: 160px; 
+      padding-right: 5px;
+    }
+    .identitas .col { 
+      width: 12px; 
+      text-align: center;
+    }
+
+    /* Daftar tugas */
+    .tugas-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10pt 0 15pt;
+      font-family: Arial, sans-serif; /* Tambahkan untuk tugas */
+    }
+    .tugas-table td {
+      vertical-align: top;
+      padding: 2pt 0;
+      font-size: 11pt;
+    }
+    .tugas-item {
+      text-align: justify;
+      padding-left: 5px;
+    }
+
+    /* Tanda tangan */
+    .ttd-container {
+      width: 100%;
+      margin-top: 40px;
+      text-align: right;
+      font-family: Arial, sans-serif; /* Tambahkan untuk TTD */
+    }
+
+    /* Kaki naskah */
+    .kaki { 
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 18pt;
+      text-align: center;
+      font-size: 11pt;
+      padding: 0 2.5cm;
+      font-family: Arial, sans-serif; /* Tambahkan untuk footer */
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+    <div class="content">
+      <!-- Kop Surat -->
+      <div class="kop">
+        <img src="http://localhost:8000/img/kop/kop.png" alt="Kop Surat" />
+      </div>
+
+      <div class="header-container">
+        <div>
+          <span class="judul-surat">SURAT TUGAS</span>
+        </div>
+        <div class="nomor-surat">NOMOR ${nomor_naskah}</div>
+      </div>
+
+      <!-- Paragraf pembuka -->
+      <p style="text-indent: 40px;">Sehubungan dengan {{jenis_naskah}} dari {{pengirim}}, Nomor: {{nomor_pengirim}}, tanggal {{tanggal_surat}}, hal: {{hal}}, dengan ini kami menugaskan kepada:
+      </p>
+
+<table class="data">
+  <tr>
+    <td>1.</td>
+    <td>Nama</td>
+    <td>:</td>
+    <td>{{nama_gelar1}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>NIP</td>
+    <td>:</td>
+    <td>{{nip1}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Pangkat, Golongan</td>
+    <td>:</td>
+    <td>{{pangkat_golongan1}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Jabatan</td>
+    <td>:</td>
+    <td>{{jabatan1}}</td>
+  </tr>
+  <tr>
+    <td>2.</td>
+    <td>Nama</td>
+    <td>:</td>
+    <td>{{nama_gelar2}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>NIP</td>
+    <td>:</td>
+    <td>{{nip2}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Pangkat, Golongan</td>
+    <td>:</td>
+    <td>{{pangkat_golongan2}}</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Jabatan</td>
+    <td>:</td>
+    <td>{{jabatan2}}</td>
+  </tr>
+</table>
+
+<!-- Daftar tugas -->
+      <table class="tugas-table">
+        <tr>
+          <td style="width: 50px; vertical-align: top;">Untuk:</td>
+          <td>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="width: 25px; vertical-align: top;">1.</td>
+                <td class="tugas-item">{{untuk_1}}{{semicolon}}</td>
+              </tr>
+              <tr>
+                <td style="width: 25px; vertical-align: top;">2.</td>
+                <td class="tugas-item">{{untuk_2}}{{semicolon}}</td>
+              </tr>
+              <tr>
+                <td style="width: 25px; vertical-align: top;">3.</td>
+                <td class="tugas-item">{{untuk_3}}{{semicolon}}</td>
+              </tr>
+              <tr>
+                <td style="width: 25px; vertical-align: top;">4.</td>
+                <td class="tugas-item">{{untuk_4}}{{semicolon}}</td>
+              </tr>
+              <tr>
+                <td style="width: 25px; vertical-align: top;">5.</td>
+                <td class="tugas-item">{{untuk_5}}{{semicolon}}</td>
+              </tr>
+              <tr>
+                <td style="width: 25px; vertical-align: top;">6.</td>
+                <td class="tugas-item">{{untuk_6}}{{dot}}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <p>Agar yang bersangkutan melaksanakan tugas dengan baik dan penuh tanggung jawab.</p>
+
+      <table width="100%" style="margin-top: 40px;">
+  <tr>
+    <td></td>
+    <td width="50%">
+      <div style="text-align: left;">
+        <div>${tanggal_naskah}</div>
+        <div>${jabatan_pengirim}</div>
+        <div style="height: 40px;"></div>
+        <div style="height: 30px;">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp${ttd_pengirim}</div>
+        <div style="height: 40px;"></div>
+        <div style="font-weight: bold; text-decoration: underline;">${nama_pengirim}</div>
+        <div>NIP. ${nip_pengirim}</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+    <!-- Kaki naskah (opsional) -->
+    <div class="kaki">
+      <img src="http://localhost:8000/img/kaki/kaki.png" alt="Kaki Naskah" />
+    </div>
+  </div>
+</body>
+</html>

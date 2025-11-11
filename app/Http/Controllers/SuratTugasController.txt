@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\LogSuratTugas;
+use App\Services\SuratTugasService;
+use Illuminate\Http\Request;
+
+class SuratTugasController extends Controller
+{
+    protected $suratTugasService;
+
+    public function __construct(SuratTugasService $suratTugasService)
+    {
+        $this->suratTugasService = $suratTugasService;
+    }
+
+    // Tampilkan form registrasi
+    public function index()
+    {
+        return view('surat_tugas.form');
+    }
+
+    // Proses form untuk preview
+    public function preview(Request $request)
+    {
+        $data = $request->all();
+        $templateType = $data['jenis_surat'] ?? 1;
+
+        // Simpan data ke session untuk digunakan di halaman preview dan generate
+        session(['surat_tugas_preview_data' => $data]);
+
+        return redirect()->route('surat_tugas.preview_page');
+    }
+
+    // Tampilkan halaman preview
+    public function showPreview()
+    {
+        if (!session()->has('surat_tugas_preview_data')) {
+            return redirect()->route('surat_tugas.form')->with('error', 'Data tidak ditemukan, silakan isi form kembali.');
+        }
+
+        $data = session('surat_tugas_preview_data');
+        $templateType = $data['jenis_surat'] ?? 1;
+        $previewHtml = $this->suratTugasService->generatePreviewHtml($data, $templateType);
+
+        return view('surat_tugas.preview', compact('previewHtml', 'data'));
+    }
+
+    /**
+     * Simpan data ke database
+     */
+    public function save(Request $request)
+    {
+        if (!session()->has('surat_tugas_preview_data')) {
+            return redirect()->route('surat_tugas.form')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $data = session('surat_tugas_preview_data');
+        $templateType = $data['jenis_surat'] ?? 1;
+        $filename = 'ST_' . date('YmdHis') . '.docx';
+
+        try {
+            // Generate file Word
+            $this->suratTugasService->generateWord($data, $templateType, $filename);
+
+            // Siapkan data untuk disimpan
+            $saveData = [
+                'jenis_naskah' => $data['jenis_naskah'],
+                'pengirim' => $data['pengirim'],
+                'nomor_pengirim' => $data['nomor_pengirim'],
+                'tanggal_surat' => $data['tanggal_surat'],
+                'hal' => $data['hal'],
+                
+                // Data Pegawai 1 (selalu ada)
+                'nama_gelar1' => $data['nama_gelar'][0] ?? '',
+                'nip1' => $data['nip'][0] ?? '',
+                'pangkat_golongan1' => $data['pangkat_golongan'][0] ?? '',
+                'jabatan1' => $data['jabatan'][0] ?? '',
+                
+                // Data Pegawai 2 (opsional)
+                'nama_gelar2' => $data['nama_gelar'][1] ?? null,
+                'nip2' => $data['nip'][1] ?? null,
+                'pangkat_golongan2' => $data['pangkat_golongan'][1] ?? null,
+                'jabatan2' => $data['jabatan'][1] ?? null,
+                
+                'filename_word' => $filename,
+                'template_type' => $templateType,
+                'html' => $this->suratTugasService->generatePreviewHtml($data, $templateType),
+            ];
+
+            // Simpan data tugas
+            for ($i = 1; $i <= 6; $i++) {
+                $saveData["untuk_$i"] = $data["untuk_$i"] ?? '';
+            }
+
+            LogSuratTugas::create($saveData);
+
+            // Hapus session
+            session()->forget('surat_tugas_preview_data');
+
+            return redirect()->route('log_surat_tugas.index')->with('success', 'Surat Tugas berhasil disimpan!');
+
+        } catch (\Exception $e) {
+            // Jika gagal, tampilkan error dan jangan hapus session agar user bisa mencoba lagi
+            return back()->with('error', 'Gagal menyimpan surat tugas: ' . $e->getMessage());
+        }
+    }
+
+    // Endpoint untuk autocomplete pencarian pegawai
+    public function searchPegawai(Request $request)
+    {
+        $term = $request->get('term');
+        $results = $this->suratTugasService->searchPegawai($term);
+        return response()->json($results);
+    }
+}

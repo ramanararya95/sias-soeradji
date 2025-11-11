@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\LogSuratTugas;
+use Illuminate\Http\Request;
+
+class LogSuratTugasController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = LogSuratTugas::latest();
+
+        // Filter berdasarkan pencarian
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama_gelar1', 'like', '%' . $search . '%')
+                  ->orWhere('nama_gelar2', 'like', '%' . $search . '%')
+                  ->orWhere('hal', 'like', '%' . $search . '%');
+            });
+        }
+
+        $suratTugasList = $query->paginate(10);
+        return view('log_surat_tugas.index', compact('suratTugasList'));
+    }
+
+    public function download($id)
+    {
+        $log = LogSuratTugas::findOrFail($id);
+        $filePath = public_path('files/st/hasil/' . $log->filename_word);
+
+        if (!file_exists($filePath)) {
+            return back()->with('error', 'File tidak ditemukan.');
+        }
+
+        return response()->download($filePath);
+    }
+
+    /**
+     * Return data for DataTables
+     */
+    public function getData(Request $request)
+    {
+        ## Read value
+        $draw = $request->get('draw');
+        $start = $request->get("start");
+        $rowperpage = $request->get("length"); // Rows display per page
+
+        $columnIndex_arr = $request->get('order');
+        $columnName_arr = $request->get('columns');
+        $order_arr = $request->get('order');
+        $search_arr = $request->get('search');
+
+        $columnIndex = $columnIndex_arr[0]['column']; // Column index
+        $columnName = $columnName_arr[$columnIndex]['data']; // Column name
+        $columnSortOrder = $order_arr[0]['dir']; // asc or desc
+        $searchValue = $search_arr['value']; // Search value
+
+        // Total records
+        $totalRecords = LogSuratTugas::select('count(*) as allcount')->count();
+        $totalRecordswithFilter = LogSuratTugas::select('count(*) as allcount')
+            ->where('nama_gelar1', 'like', '%' .$searchValue . '%')
+            ->orWhere('nama_gelar2', 'like', '%' .$searchValue . '%')
+            ->orWhere('hal', 'like', '%' .$searchValue . '%')
+            ->count();
+
+        // Fetch records
+        $records = LogSuratTugas::orderBy($columnName, $columnSortOrder)
+            ->where(function($query) use ($searchValue) {
+                $query->where('nama_gelar1', 'like', '%' .$searchValue . '%')
+                      ->orWhere('nama_gelar2', 'like', '%' .$searchValue . '%')
+                      ->orWhere('hal', 'like', '%' .$searchValue . '%');
+            })
+            ->skip($start)
+            ->take($rowperpage)
+            ->get();
+
+        $data_arr = [];
+
+        foreach($records as $record){
+            $id = $record->id;
+            $filename_word = $record->filename_word ?? 'Tidak ada file';
+            $nama_pegawai = $record->nama_gelar1 . ($record->nama_gelar2 ? ', ' . $record->nama_gelar2 : '');
+            $hal = $record->hal;
+            $created_at = $record->created_at->format('d M Y, H:i'); // Gunakan format() dari Carbon
+            
+            // Tombol aksi
+            $aksi = '';
+            if ($record->filename_word) {
+                $aksi = '<a href="'.route("log_surat_tugas.download", $record->id).'" class="btn btn-sm btn-success" target="_blank">
+                            <i class="fas fa-download"></i> Download
+                         </a>';
+            } else {
+                $aksi = '<span class="text-muted">-</span>';
+            }
+
+            $data_arr[] = array(
+                "DT_RowIndex" => $id, // Untuk nomor urut
+                "filename_word" => $filename_word,
+                "nama_pegawai" => $nama_pegawai,
+                "hal" => $hal,
+                "created_at" => $created_at,
+                "aksi" => $aksi
+            );
+        }
+
+        $response = array(
+            "draw" => intval($draw),
+            "iTotalRecords" => $totalRecords,
+            "iTotalDisplayRecords" => $totalRecordswithFilter,
+            "aaData" => $data_arr
+        );
+
+        return response()->json($response);
+    }
+}
